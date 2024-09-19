@@ -1,0 +1,29 @@
+version: "2.29.1"
+
+services:
+  # Next.js application service
+  web:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - .:/app # Mount the current directory to /app inside the container
+      - /app/node_modules # Prevents overwriting node_modules inside the container
+    ports:
+      - "3000:3000" # Maps port 3000 on the host to port 3000 on the container
+    environment:
+      - MONGO_URL=mongodb://mongo:27017/foodmasters # MongoDB connection string
+    command: sh -c "npm install && npm run dev" # Install dependencies and start the app in development mode
+    depends_on:
+      - mongo # Ensures that the MongoDB service is started before the app
+
+  # MongoDB service
+  mongo:
+    image: mongo:6.0 # official mogno image
+    ports:
+      - "27017:27017" # Maps port 27017 on the host to port 27017 on the container
+    volumes:
+      - mongo_data:/data/db # Persist MongoDB data using a named volume
+
+# Named volumes
+volumes:
+  mongo_data:

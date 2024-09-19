@@ -1,0 +1,56 @@
+name: CD Delivery workflow for testers with github actions
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: # triggered manually
+
+env:
+  #
+  REGISTRY: ghcr.io # github container repository
+  IMAGE_NAME: ${{ github.actor}}/foodmasters:latest
+
+jobs:
+  Deploy:
+    name: Deliver docker image to container registry
+    runs-on: ubuntu-latest
+
+    # rights to create image on registry
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build
+
+      - name: Log in the container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{env.REGISTRY}}
+          username: ${{github.actor}}
+          password: ${{secrets.GITHUB_TOKEN}}
+
+      - name: Extract metadata for docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{env.REGISTRY}}/${{env.IMAGE_NAME}}
+
+      - name: Publish
+        run: |
+          docker build . --tag ${{ env.REGISTRY}}/${{env.IMAGE_NAME}}
+          docker push ${{ env.REGISTRY}}/${{env.IMAGE_NAME}}
